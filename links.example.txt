@@ -1,0 +1,6 @@
+# Una lezione per riga. Righe vuote e commenti (#) sono ignorati.
+# Solo il link: il nome del file viene ricavato dal link.
+https://ateneo.sharepoint.com/sites/corso/_layouts/15/stream.aspx?id=%2Fsites%2Fcorso%2FShared%20Documents%2FLezione%2001.mp4
+
+# Nome a scelta, poi | e il link:
+Lezione 02 - Esercitazione | https://ateneo.sharepoint.com/sites/corso/_layouts/15/stream.aspx?id=...
