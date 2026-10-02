@@ -65,32 +65,68 @@ Se lo script non è eseguibile, usa `chmod +x registra.py` oppure
 - Righe vuote e righe che iniziano con `#` vengono ignorate.
 - Formato `link` → il nome del file viene ricavato dal link.
 - Formato `Nome | link` → il file si chiamerà `Nome.mp4`.
-- Se due lezioni finiscono con lo stesso nome, alla seconda viene aggiunto un
-  numero, es. `Lezione (2).mp4`.
+- Se lo stesso video compare più volte (anche con link leggermente diversi, es.
+  parametri come `referrerScenario`), viene registrato una volta sola e le righe
+  doppie sono segnalate e saltate.
+- Se due lezioni *diverse* finiscono con lo stesso nome, alla seconda viene
+  aggiunto un numero, es. `Lezione (2).mp4`, come per i download da browser.
+- Una lezione è considerata già registrata se nella cartella di destinazione
+  esiste già il suo `.mp4`: se cambi il nome nel file dei link o la cartella,
+  verrà registrata di nuovo.
 
 Vedi [`links.example.txt`](links.example.txt).
 
 ## Login
 
-La sessione Microsoft viene salvata in un profilo di Chrome dedicato
-(`~/.cache/sp-record-profile`), separato dal tuo Chrome normale.
+La sessione Microsoft (cookie di login) viene salvata in
+`~/.cache/lesdv/sessione.json`, leggibile solo dal tuo utente. Tutte le
+registrazioni e tutte le istanze dello script usano questo stesso file.
 
 - Al primo avvio, o quando la sessione scade, lo script se ne accorge da solo e
   apre una finestra visibile per il login.
 - Hai 10 minuti per completarlo (`--login-timeout` per cambiarli).
+- Si apre una sola finestra di login alla volta, anche con più registrazioni o
+  più istanze in corso: le altre aspettano e ripartono con la sessione nuova.
 - Per forzare un nuovo login senza registrare nulla:
   ```bash
   ./registra.py --login "<un link qualsiasi di una lezione>"
   ```
-- Per ripartire da zero (es. cambiare account) cancella la cartella
-  `~/.cache/sp-record-profile`.
+- Per ripartire da zero (es. cambiare account) cancella
+  `~/.cache/lesdv/sessione.json`.
+
+## Registrazioni in parallelo
+
+Con `-j N` lo script registra N lezioni contemporaneamente:
+
+```bash
+./registra.py links.txt lezioni/ -j 2
+```
+
+Puoi anche lanciare più istanze insieme, ognuna con il suo file di link, la sua
+cartella e il suo livello di parallelismo:
+
+```bash
+./registra.py analisi.txt ~/Lezioni/Analisi1/ -j 2     # in un terminale
+./registra.py fisica.txt  ~/Lezioni/Fisica/   -j 3     # in un altro
+```
+
+In basso nel terminale una riga mostra l'avanzamento di ogni registrazione.
+
+**Quante in parallelo?** Ogni registrazione tiene impegnati un Chrome che
+decodifica il video e un encoder x264, entrambi senza GPU: indicativamente
+2–3 core e qualche centinaio di MB di RAM ciascuna a 1920x1080. Parti con
+`-j 2` e guarda il carico (`htop`): se la CPU è sempre al 100% il video
+registrato può perdere fotogrammi. Abbassare `--size` (es. `1280x720`) riduce
+molto il carico.
 
 ## Interruzioni e ripresa
 
 - Ogni lezione viene scritta prima come `Nome.part.mp4` e rinominata in
   `Nome.mp4` solo quando è completa.
-- Le lezioni già presenti nella cartella vengono saltate: se interrompi
-  (Ctrl+C) o qualcosa va storto, basta rilanciare lo stesso comando.
+- Con Ctrl+C (o chiudendo il terminale) lo script chiude in modo pulito tutte
+  le registrazioni in corso e libera schermi virtuali e canali audio.
+- Le lezioni già presenti nella cartella vengono saltate: se interrompi o
+  qualcosa va storto, basta rilanciare lo stesso comando.
 - I file `.part.mp4` rimasti sono registrazioni incomplete e si possono
   cancellare.
 - Se un video non si carica, accanto viene salvato uno screenshot
@@ -101,6 +137,7 @@ La sessione Microsoft viene salvata in un profilo di Chrome dedicato
 
 | Opzione | Default | Descrizione |
 |---|---|---|
+| `-j`, `--jobs` | `1` | Lezioni registrate in parallelo |
 | `--size` | `1920x1080` | Risoluzione della registrazione |
 | `--fps` | `25` | Fotogrammi al secondo |
 | `--crf` | `23` | Qualità x264: più basso = migliore e file più grande (18–28 ragionevole) |
@@ -119,18 +156,6 @@ Esempio con file più leggeri:
 ./registra.py links.txt lezioni/ --size 1280x720 --crf 26
 ```
 
-## Problemi comuni
-
-- **`Mancano: Xvfb, ffmpeg…`**: installa i programmi di sistema (vedi Requisiti).
-- **Video nero o senza audio**: verifica di usare Google Chrome e non il
-  Chromium di Playwright.
-- **Si apre sempre la finestra di login anche dopo averlo fatto**: il link
-  potrebbe non essere accessibile con il tuo account; guarda lo screenshot
-  `.errore.png`.
-- **"Riproduzione ferma da 2 minuti"**: problema di rete o del player; la
-  lezione resta come `.part.mp4`, rilancia il comando per riprovarla.
-
 ## Nota
 
-Usa lo script solo per contenuti a cui hai legittimamente accesso e nel
-rispetto delle regole del tuo ateneo sulla registrazione delle lezioni.
+Siamo tutte personcine perbene, quindi usa lo script solo per contenuti a cui hai legittimamente accesso e nel rispetto delle regole del tuo ateneo sulla registrazione delle lezioni.
